@@ -51,3 +51,12 @@ No se ha medido tiempo de captura ni exactitud visual. El código está en GitHu
 - [ ] Prueba real en Chrome de **Copiar PNG 2×**: confirmar que la imagen queda en el portapapeles, que el pegador conserva las dimensiones 2×, que el aviso de reescalado coincide con la descarga y que funciona con el popup abierto sobre una página `https://` real. No realizada todavía.
 
 Referencia de la API: https://developer.chrome.com/docs/extensions/reference/api/tabs#method-captureVisibleTab
+
+## Icono y tema — versión 0.3.0
+
+- Iconos nuevos `extension/icons/icon16.png`, `icon32.png`, `icon48.png` y `icon128.png`, generados con `scripts/make-icons.mjs`.
+- El generador dibuja la "h" con dos rectángulos (tallo y asta) y un arco, y el punto con un círculo; renderiza a alta resolución y reduce por muestreo de caja para suavizar bordes. Codifica el PNG con `node:zlib` y construye IHDR/IDAT/IEND a mano. No usa fuentes ni canvas.
+- `npm run check` verifica que los cuatro PNG existen, tienen firma PNG válida y que `icons` y `action.default_icon` del manifiesto los declaran.
+- `tests/icons.test.js` valida la firma y la cabecera, y la presencia de píxeles naranjas en la h y el punto, sin dependencias npm.
+- Tema del popup estilo OpenAI (fondo claro, superficies blancas, bordes grises y botón principal negro). Sin cambios en la lógica de captura.
+- [ ] Pendiente: revisar visualmente los iconos y el tema en Chrome con la extensión recargada. No realizada todavía.

@@ -39,7 +39,7 @@ La extensión solicita `activeTab`, `scripting` y escritura en el portapapeles. 
 
 ## Descargar o copiar una imagen PNG 2×
 
-En la versión 0.2.0 hay dos botones, **Descargar PNG 2×** y **Copiar PNG 2×**. Después de actualizar los archivos, pulsa **Recargar** en la tarjeta de la extensión en `chrome://extensions`.
+En la versión actual (0.3.0) hay dos botones, **Descargar PNG 2×** y **Copiar PNG 2×**, introducidos en la 0.2.0. Después de actualizar los archivos, pulsa **Recargar** en la tarjeta de la extensión en `chrome://extensions`.
 
 1. Abre la página y desplázate hasta el área que quieras guardar.
 2. Abre la extensión y pulsa **Descargar PNG 2×** para iniciar una descarga, o **Copiar PNG 2×** para poner la imagen en el portapapeles.
@@ -52,6 +52,17 @@ La resolución original depende de la pantalla y del zoom de Chrome. En Retina 2
 La copia usa `navigator.clipboard.write` con un `ClipboardItem` de tipo `image/png`. Si el navegador no ofrece esa API, el panel muestra un error claro y sugiere usar la descarga; el popup no se bloquea. En Chrome, escribir en el portapapeles requiere una ventana enfocada, así que la copia debe pulsarse con el popup abierto y la página activa.
 
 El botón de descarga se probó en Chrome sobre `https://example.com`: descargó un PNG válido de 3526 × 1714 px a partir de una captura de 1763 × 857 px. El panel indicó correctamente que hubo reescalado. También se inspeccionó visualmente la imagen descargada. Las pruebas automatizadas cubren dimensiones, cambios de pestaña/vista, propagación de errores, liberación del bitmap, la construcción del `ClipboardItem`, el aviso cuando el portapapeles no está disponible y que copiar no dispara ninguna descarga, usando un navegador simulado. La copia real en el portapapeles de Chrome todavía no se ha probado en navegador.
+
+## Versión 0.3.0 — icono y tema
+
+Esta versión no cambia la funcionalidad: **Copiar a Figma**, **Descargar PNG 2×** y **Copiar PNG 2×** siguen funcionando igual.
+
+- Icono nuevo **h. naranja**, generado con `node scripts/make-icons.mjs`. Escribe `extension/icons/icon16.png`, `icon32.png`, `icon48.png` y `icon128.png` sin dependencias npm, sin fuentes del sistema y sin canvas: dibuja la letra y el punto con geometría y codifica el PNG con `node:zlib`. El script y los PNG se versionan.
+- El manifiesto declara los cuatro iconos en `icons` y en `action.default_icon`. No se añaden permisos.
+- Interfaz del popup con estética estilo OpenAI: fondo claro, superficies blancas, bordes grises finos y botón principal negro. Se eliminó el morado de la versión anterior.
+- La versión del manifiesto y de `package.json` sube a 0.3.0.
+
+No se ha hecho todavía una prueba real en navegador con el icono ni con el tema. Las comprobaciones de iconos son estáticas (firma y dimensiones de la cabecera PNG) y el tema se revisó solo por inspección del CSS.
 
 ## Alcance de esta primera versión
 
