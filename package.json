@@ -1,6 +1,6 @@
 {
   "name": "html-to-figma-ai",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "description": "Prueba local de captura HTML al portapapeles de Figma, sin MCP ni generación por IA.",

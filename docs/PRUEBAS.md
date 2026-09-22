@@ -11,6 +11,8 @@ Los repositorios de referencia están en `../vendor/`, fuera de este repositorio
 | gildas-lormeau/SingleFile | `0bf5c08f262e53f9f92a6861dcb62dc7f0bd1997` |
 | capture.js desde Figma | `7be9680d031d8df7dafe5e958ce8bfe17261806eb43a821574e89ee5032becda` |
 
+`extension/capture.js` se versiona en Git desde la versión 0.3.2 para que la extensión funcione al clonar el repositorio sin pasos previos. `npm run setup` sigue disponible para volver a descargarlo y verificar el hash.
+
 ## Hallazgos de inspección
 
 1. El Makefile de figma-capture expone `fn` como función interna para mostrar la barra del portapapeles. En el motor descargado la función correspondiente se llama `xm`. El parche original depende de nombres minificados y no es compatible con esta versión.
