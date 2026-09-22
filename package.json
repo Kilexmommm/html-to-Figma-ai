@@ -1,0 +1,13 @@
+{
+  "name": "html-to-figma-ai",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Prueba local de captura HTML al portapapeles de Figma, sin MCP ni generación por IA.",
+  "scripts": {
+    "setup": "node scripts/download-capture.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=22" }
+}

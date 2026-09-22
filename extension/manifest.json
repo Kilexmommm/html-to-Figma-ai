@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "HTML a Figma — Prueba local",
+  "version": "0.2.0",
+  "description": "Copia la página a capas de Figma o descarga una captura PNG del área visible a 2×.",
+  "permissions": ["activeTab", "scripting", "clipboardWrite"],
+  "action": { "default_title": "Copiar a Figma", "default_popup": "popup.html" }
+}
