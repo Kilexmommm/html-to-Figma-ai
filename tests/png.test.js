@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { capturePng, planPng, pngFilename } from '../extension/png.js';
+import { capturePng, copyPngToClipboard, pngClipboardItem, planPng, pngFilename } from '../extension/png.js';
 
 test('Retina exports exactly 2× CSS size, not 4×', () => {
   assert.deepEqual(planPng({ width: 1440, height: 900 }, { width: 2880, height: 1800 }),
@@ -103,4 +103,55 @@ test('canvas failure still releases the bitmap', async () => {
   const setup = harness({ renderFails: true });
   await assert.rejects(setup.run(), /Canvas failed/);
   assert.equal(setup.counts().closed, 1);
+});
+
+class FakeClipboardItem {
+  constructor(payload) { this.payload = payload; }
+}
+
+function clipboardSpy() {
+  return {
+    written: [],
+    async write(items) { this.written.push(...items); }
+  };
+}
+
+test('copiar reutiliza el blob y las dimensiones de la misma captura 2×', async () => {
+  const setup = harness();
+  const result = await setup.run();
+  const clipboard = clipboardSpy();
+  const returned = await copyPngToClipboard(result, clipboard, FakeClipboardItem);
+  assert.equal(returned, result);
+  assert.equal(clipboard.written.length, 1);
+  assert.equal(clipboard.written[0].payload['image/png'], result.blob);
+  assert.deepEqual({ width: result.width, height: result.height }, { width: 2880, height: 1800 });
+});
+
+test('sin portapapeles disponible se avisa y no se escribe nada', async () => {
+  const result = { blob: new Blob(['mock png'], { type: 'image/png' }), width: 2880, height: 1800 };
+  await assert.rejects(copyPngToClipboard(result, {}, FakeClipboardItem), /portapapeles/);
+});
+
+test('sin ClipboardItem se avisa en lugar de romper el popup', async () => {
+  const result = { blob: new Blob(['mock png'], { type: 'image/png' }), width: 2880, height: 1800 };
+  const clipboard = clipboardSpy();
+  assert.throws(() => pngClipboardItem(result, undefined), /portapapeles/);
+  await assert.rejects(copyPngToClipboard(result, clipboard, undefined), /portapapeles/);
+  assert.equal(clipboard.written.length, 0);
+});
+
+test('copiar no inicia ninguna descarga', async () => {
+  const setup = harness();
+  const result = await setup.run();
+  const clipboard = clipboardSpy();
+  const original = URL.createObjectURL;
+  let downloads = 0;
+  URL.createObjectURL = () => { downloads++; return 'blob:mock'; };
+  try {
+    await copyPngToClipboard(result, clipboard, FakeClipboardItem);
+  } finally {
+    URL.createObjectURL = original;
+  }
+  assert.equal(downloads, 0);
+  assert.equal(clipboard.written.length, 1);
 });

@@ -23,6 +23,24 @@ export function pngFilename(title, date = new Date()) {
   return `${name}-${date.toISOString().replace(/[:.]/g, '-')}-2x.png`;
 }
 
+export function pngClipboardItem(result, ClipboardItemCtor = globalThis.ClipboardItem) {
+  if (typeof ClipboardItemCtor !== 'function') {
+    throw new Error('El portapapeles no admite imágenes PNG; usa Descargar PNG 2×.');
+  }
+  if (!result?.blob || typeof result.blob.size !== 'number') {
+    throw new Error('No hay una imagen PNG lista para copiar.');
+  }
+  return new ClipboardItemCtor({ 'image/png': result.blob });
+}
+
+export async function copyPngToClipboard(result, clipboard = globalThis.navigator?.clipboard, ClipboardItemCtor = globalThis.ClipboardItem) {
+  if (!clipboard || typeof clipboard.write !== 'function') {
+    throw new Error('El portapapeles no está disponible; usa Descargar PNG 2×.');
+  }
+  await clipboard.write([pngClipboardItem(result, ClipboardItemCtor)]);
+  return result;
+}
+
 export async function capturePng(chromeApi, tab, imaging) {
   const [{ result: viewport }] = await chromeApi.scripting.executeScript({
     target: { tabId: tab.id },

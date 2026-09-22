@@ -37,19 +37,21 @@ La sección **Diagnóstico** del HTML permite pegar la captura y contar nodos y 
 
 La extensión solicita `activeTab`, `scripting` y escritura en el portapapeles. No solicita acceso permanente a todos los sitios.
 
-## Descargar una imagen PNG 2×
+## Descargar o copiar una imagen PNG 2×
 
-En la versión 0.2.0 hay un botón **Descargar PNG 2×**. Después de actualizar los archivos, pulsa **Recargar** en la tarjeta de la extensión en `chrome://extensions`.
+En la versión 0.2.0 hay dos botones, **Descargar PNG 2×** y **Copiar PNG 2×**. Después de actualizar los archivos, pulsa **Recargar** en la tarjeta de la extensión en `chrome://extensions`.
 
 1. Abre la página y desplázate hasta el área que quieras guardar.
-2. Abre la extensión y pulsa **Descargar PNG 2×**.
-3. Se inicia una descarga PNG. El panel muestra las dimensiones y deja un enlace para guardarla de nuevo.
+2. Abre la extensión y pulsa **Descargar PNG 2×** para iniciar una descarga, o **Copiar PNG 2×** para poner la imagen en el portapapeles.
+3. Tras la descarga, el panel muestra las dimensiones y deja un enlace para guardarla de nuevo. Tras la copia, el panel indica las dimensiones y que la imagen quedó en el portapapeles; ya se puede pegar con `⌘V` o `Ctrl+V`.
 
-Captura exclusivamente el área visible de la pestaña, sin la interfaz del navegador. No usa el selector de la captura editable de Figma. Un viewport de 1440 × 900 píxeles CSS genera una imagen de 2880 × 1800 píxeles.
+Ambos botones capturan exactamente el mismo PNG 2×. Captura exclusivamente el área visible de la pestaña, sin la interfaz del navegador. No usa el selector de la captura editable de Figma. Un viewport de 1440 × 900 píxeles CSS genera una imagen de 2880 × 1800 píxeles.
 
 La resolución original depende de la pantalla y del zoom de Chrome. En Retina 2×, si Chrome entrega suficientes píxeles, se conserva ese detalle. Si la captura nativa es menor, el PNG se reescala y el panel lo indica: aumentar dimensiones no inventa detalle. No se utiliza depuración del navegador ni se solicitan permisos nuevos.
 
-El botón PNG se probó en Chrome sobre `https://example.com`: descargó un PNG válido de 3526 × 1714 px a partir de una captura de 1763 × 857 px. El panel indicó correctamente que hubo reescalado. También se inspeccionó visualmente la imagen descargada. Las pruebas automatizadas cubren dimensiones, cambios de pestaña/vista, propagación de errores y liberación del bitmap usando un navegador simulado.
+La copia usa `navigator.clipboard.write` con un `ClipboardItem` de tipo `image/png`. Si el navegador no ofrece esa API, el panel muestra un error claro y sugiere usar la descarga; el popup no se bloquea. En Chrome, escribir en el portapapeles requiere una ventana enfocada, así que la copia debe pulsarse con el popup abierto y la página activa.
+
+El botón de descarga se probó en Chrome sobre `https://example.com`: descargó un PNG válido de 3526 × 1714 px a partir de una captura de 1763 × 857 px. El panel indicó correctamente que hubo reescalado. También se inspeccionó visualmente la imagen descargada. Las pruebas automatizadas cubren dimensiones, cambios de pestaña/vista, propagación de errores, liberación del bitmap, la construcción del `ClipboardItem`, el aviso cuando el portapapeles no está disponible y que copiar no dispara ninguna descarga, usando un navegador simulado. La copia real en el portapapeles de Chrome todavía no se ha probado en navegador.
 
 ## Alcance de esta primera versión
 

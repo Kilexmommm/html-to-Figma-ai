@@ -1,7 +1,8 @@
-import { capturePng } from './png.js';
+import { capturePng, copyPngToClipboard } from './png.js';
 
 const button = document.querySelector('#capture');
 const pngButton = document.querySelector('#capture-png');
+const copyButton = document.querySelector('#copy-png');
 const saveLink = document.querySelector('#save-image');
 const status = document.querySelector('#status');
 let downloadUrl;
@@ -9,6 +10,7 @@ let downloadUrl;
 function setBusy(busy) {
   button.disabled = busy;
   pngButton.disabled = busy;
+  copyButton.disabled = busy;
 }
 
 async function getPageTab() {
@@ -17,6 +19,32 @@ async function getPageTab() {
     throw new Error('Abre primero una página web, localhost o un archivo HTML.');
   }
   return tab;
+}
+
+const pngImaging = {
+  decode: async url => createImageBitmap(await (await fetch(url)).blob()),
+  render: (bitmap, size) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size.width;
+    canvas.height = size.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('No se pudo preparar la imagen.');
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(bitmap, 0, 0, size.width, size.height);
+    return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se pudo generar el PNG.')), 'image/png'));
+  }
+};
+
+async function captureVisiblePng() {
+  return capturePng(chrome, await getPageTab(), pngImaging);
+}
+
+function pngSummary(result) {
+  return `${result.width} × ${result.height} px. ` +
+    (result.upscaled
+      ? `Reescalado desde ${result.sourceWidth} × ${result.sourceHeight} px; amplía la imagen sin añadir detalle real.`
+      : 'La captura original aporta la resolución necesaria para 2×.');
 }
 
 button.addEventListener('click', async () => {
@@ -55,32 +83,30 @@ pngButton.addEventListener('click', async () => {
   saveLink.hidden = true;
   status.textContent = 'Capturando el área visible…';
   try {
-    const result = await capturePng(chrome, await getPageTab(), {
-      decode: async url => createImageBitmap(await (await fetch(url)).blob()),
-      render: (bitmap, size) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = size.width;
-        canvas.height = size.height;
-        const context = canvas.getContext('2d');
-        if (!context) throw new Error('No se pudo preparar la imagen.');
-        context.imageSmoothingEnabled = true;
-        context.imageSmoothingQuality = 'high';
-        context.drawImage(bitmap, 0, 0, size.width, size.height);
-        return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se pudo generar el PNG.')), 'image/png'));
-      }
-    });
+    const result = await captureVisiblePng();
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
     downloadUrl = URL.createObjectURL(result.blob);
     saveLink.href = downloadUrl;
     saveLink.download = result.filename;
     saveLink.hidden = false;
     saveLink.click();
-    status.textContent = `PNG preparado: ${result.width} × ${result.height} px. ` +
-      (result.upscaled
-        ? `Reescalado desde ${result.sourceWidth} × ${result.sourceHeight} px; amplía la imagen sin añadir detalle real.`
-        : 'La captura original aporta la resolución necesaria para 2×.');
+    status.textContent = `PNG preparado: ${pngSummary(result)}`;
   } catch (error) {
     status.textContent = `No se pudo capturar: ${error.message}`;
+  } finally {
+    setBusy(false);
+  }
+});
+
+copyButton.addEventListener('click', async () => {
+  setBusy(true);
+  status.textContent = 'Capturando el área visible…';
+  try {
+    const result = await captureVisiblePng();
+    await copyPngToClipboard(result);
+    status.textContent = `PNG 2× copiado al portapapeles: ${pngSummary(result)}`;
+  } catch (error) {
+    status.textContent = `No se pudo copiar: ${error.message}`;
   } finally {
     setBusy(false);
   }

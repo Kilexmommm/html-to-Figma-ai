@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><meta charset="utf-8"><title>HTML a Figma</title>
 <style>
-body{width:310px;padding:20px;font:14px system-ui;color:#202436;background:#f5f6fa;margin:0}h1{font-size:21px;margin:0 0 8px}p{line-height:1.5;color:#555e73}label{display:block;margin-top:16px}input{box-sizing:border-box;width:100%;padding:10px;margin:7px 0 14px;border:1px solid #cbd1df;border-radius:7px}button{width:100%;border:0;border-radius:8px;padding:12px;color:white;background:#5144d7;font-weight:600;cursor:pointer}button:disabled{opacity:.5;cursor:wait}.secondary{background:white;color:#38316f;border:1px solid #cac5ed}.hint{font-size:12px;margin:9px 0 18px}hr{border:0;border-top:1px solid #dce0ea;margin:20px 0}#status{min-height:42px;font-size:12px}#save-image{display:block;margin:12px 0;color:#5144d7}#save-image[hidden]{display:none}
+body{width:310px;padding:20px;font:14px system-ui;color:#202436;background:#f5f6fa;margin:0}h1{font-size:21px;margin:0 0 8px}p{line-height:1.5;color:#555e73}label{display:block;margin-top:16px}input{box-sizing:border-box;width:100%;padding:10px;margin:7px 0 14px;border:1px solid #cbd1df;border-radius:7px}button{width:100%;border:0;border-radius:8px;padding:12px;color:white;background:#5144d7;font-weight:600;cursor:pointer}button:disabled{opacity:.5;cursor:wait}.secondary{background:white;color:#38316f;border:1px solid #cac5ed}.hint{font-size:12px;margin:9px 0 18px}hr{border:0;border-top:1px solid #dce0ea;margin:20px 0}#status{min-height:42px;font-size:12px}#save-image{display:block;margin:12px 0;color:#5144d7}#save-image[hidden]{display:none}.png-actions{display:flex;flex-direction:column;gap:8px}
 </style>
 <h1>HTML → Figma</h1>
 <p>Captura el estado actual de la página. Después pega con ⌘V / Ctrl+V en Figma.</p>
@@ -10,7 +10,10 @@ body{width:310px;padding:20px;font:14px system-ui;color:#202436;background:#f5f6
 <button id="capture">Copiar a Figma</button>
 <p class="hint">body captura la página completa; un selector captura una sección.</p>
 <hr>
+<div class="png-actions">
 <button id="capture-png" class="secondary">Descargar PNG 2×</button>
+<button id="copy-png" class="secondary">Copiar PNG 2×</button>
+</div>
 <p class="hint">Imagen del área visible, al doble de ancho y alto. No utiliza el selector de arriba. Si la captura original tiene menos resolución, se indicará el reescalado.</p>
 <a id="save-image" hidden>Guardar PNG de nuevo</a>
 <p id="status" role="status" aria-live="polite">Abre la vista que quieras capturar.</p>
