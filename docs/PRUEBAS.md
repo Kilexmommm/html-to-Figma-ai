@@ -67,3 +67,11 @@ Referencia de la API: https://developer.chrome.com/docs/extensions/reference/api
   - `--pack-extension` sobre una copia temporal terminó con exit 0 y generó `extension.crx` (124271 bytes) y `extension.pem`; el manifiesto y los iconos se aceptan.
   - NO comprobado y por tanto no marcado como hecho: no se cargó la extensión descomprimida en Chrome (la versión de marca 153 responde `--load-extension is not allowed in Google Chrome, ignoring`), así que no se verificó el popup anclado a la barra de herramientas, ni el click real del botón, ni la recarga de la extensión. El render headless usa el mismo `popup.html`/CSS, pero no el contexto de extensión.
 - `npm run check` y `npm test` (21/21) pasan tras la revisión y la corrección del icono. `tests/icons.test.js` añade dos comprobaciones: que el icono de 16 px supera los 30 píxeles naranjas opacos y que las columnas entre la h y el punto tienen cobertura tenue (≤128) para detectar fusión.
+
+## Mensaje accionable cuando falta capture.js
+
+- `extension/popup.js` aísla la inyección de `capture.js` y traduce el fallo con `describeCaptureError` (`extension/errors.js`). Si el mensaje de Chrome es `Could not load file: 'capture.js'` o menciona `capture.js`, el popup muestra: «Falta el motor de captura (capture.js). Ejecuta «npm run setup» en la carpeta del repositorio y pulsa Recargar en chrome://extensions.».
+- La misma función conserva el consejo de acceso a URLs de archivo cuando el error contiene `access`, y deja intactos los demás mensajes.
+- `scripts/check.mjs` comprueba la presencia de `extension/capture.js` antes de validar la sintaxis y el hash; si falta, falla con el aviso de ejecutar `npm run setup` en vez de un ENOENT crudo.
+- `tests/errors.test.js` prueba la traducción sin navegador: capture.js ausente, propagación sin cambios de otros errores y conservación del consejo para `access`. Los 21 tests previos siguen pasando.
+- No comprobado: no se reprodujo el error con la extensión cargada en Chrome. La verificación es automática sobre la función pura.

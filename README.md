@@ -37,9 +37,15 @@ La sección **Diagnóstico** del HTML permite pegar la captura y contar nodos y 
 
 La extensión solicita `activeTab`, `scripting` y escritura en el portapapeles. No solicita acceso permanente a todos los sitios.
 
+## Solución de problemas
+
+- **`Could not load file: 'capture.js'`** al pulsar **Copiar a Figma**: el motor de captura no está junto a la extensión. Ejecuta `npm run setup` en la carpeta del repositorio, abre `chrome://extensions` y pulsa **Recargar** en la tarjeta de la extensión. La nueva versión del popup muestra ese mismo consejo en lugar del error crudo de Chrome.
+- **No debe haber dos copias de la extensión cargadas a la vez.** Si antes cargaste la carpeta `../extension` (la original) y ahora cargas la del repositorio, desinstala una de las dos antes de recargar. Con dos copias activas, Chrome puede ejecutar la versión antigua (sin `capture.js`) aunque la carpeta nueva sí lo tenga.
+- La traducción del error a un mensaje accionable está en `extension/errors.js` y se prueba con tests de Node (`tests/errors.test.js`). No se ha reproducido el fallo con la extensión cargada en Chrome: la comprobación es automática sobre la función de traducción.
+
 ## Descargar o copiar una imagen PNG 2×
 
-En la versión actual (0.3.0) hay dos botones, **Descargar PNG 2×** y **Copiar PNG 2×**, introducidos en la 0.2.0. Después de actualizar los archivos, pulsa **Recargar** en la tarjeta de la extensión en `chrome://extensions`.
+En la versión actual (0.3.1) hay dos botones, **Descargar PNG 2×** y **Copiar PNG 2×**, introducidos en la 0.2.0. Después de actualizar los archivos, pulsa **Recargar** en la tarjeta de la extensión en `chrome://extensions`.
 
 1. Abre la página y desplázate hasta el área que quieras guardar.
 2. Abre la extensión y pulsa **Descargar PNG 2×** para iniciar una descarga, o **Copiar PNG 2×** para poner la imagen en el portapapeles.

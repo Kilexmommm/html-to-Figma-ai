@@ -1,4 +1,5 @@
 import { capturePng, copyPngToClipboard } from './png.js';
+import { describeCaptureError } from './errors.js';
 
 const button = document.querySelector('#capture');
 const pngButton = document.querySelector('#capture-png');
@@ -61,7 +62,11 @@ button.addEventListener('click', async () => {
       }, args: [selector]
     });
     if (result.error || !result.found) throw new Error(result.error || 'No existe un elemento con ese selector.');
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: 'MAIN', files: ['capture.js'] });
+    try {
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: 'MAIN', files: ['capture.js'] });
+    } catch (error) {
+      throw new Error(describeCaptureError(error));
+    }
     await chrome.scripting.executeScript({
       target: { tabId: tab.id }, world: 'MAIN',
       func: (value) => {
@@ -73,7 +78,7 @@ button.addEventListener('click', async () => {
     });
     window.close();
   } catch (error) {
-    status.textContent = error.message + (String(error.message).includes('access') ? ' Si es un archivo local, habilita el acceso a URLs de archivo en los detalles de la extensión.' : '');
+    status.textContent = describeCaptureError(error);
     setBusy(false);
   }
 });

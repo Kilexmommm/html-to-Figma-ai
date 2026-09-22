@@ -19,7 +19,13 @@ assert.equal(manifest.manifest_version, 3);
 assert.deepEqual(manifest.permissions, ['activeTab', 'scripting', 'clipboardWrite']);
 assert.equal(manifest.host_permissions, undefined, 'No se necesitan permisos permanentes sobre todos los sitios.');
 await access(new URL(`extension/${manifest.action.default_popup}`, root));
-for (const file of ['extension/popup.js', 'extension/png.js', 'extension/capture.js']) {
+try {
+  await access(new URL('extension/capture.js', root));
+} catch {
+  console.error('Falta extension/capture.js. Ejecuta «npm run setup» en la carpeta del repositorio para descargar el motor de captura.');
+  process.exit(1);
+}
+for (const file of ['extension/popup.js', 'extension/png.js', 'extension/errors.js', 'extension/capture.js']) {
   const result = spawnSync(process.execPath, ['--check', fileURLToPath(new URL(file, root))], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   console.log(`Sintaxis correcta: ${file}`);
