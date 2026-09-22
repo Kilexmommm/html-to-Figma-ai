@@ -29,22 +29,46 @@ function chunk(type, data) {
   return Buffer.concat([length, typeBuffer, data, crc]);
 }
 
-function insideGlyph(x, y) {
-  if (x >= 0.205 && x <= 0.27 && y >= 0.18 && y <= 0.82) return true;
-  if (x >= 0.51 && x <= 0.575 && y >= 0.605 && y <= 0.82) return true;
-  const ax = x - 0.39;
-  const ay = y - 0.605;
+function layout(size) {
+  const stroke = Math.max(0.075, 2 / size);
+  const dotRadius = Math.max(0.065, 1.8 / size);
+  const gap = Math.max(0.045, 1.6 / size);
+  const width = 0.44;
+  const radius = width / 2;
+  const left = (1 - (width + gap + 2 * dotRadius)) / 2;
+  const archCenterY = 0.42 + radius;
+  return {
+    left,
+    right: left + width,
+    stroke,
+    radius,
+    innerRadius: radius - stroke,
+    archCenterY,
+    yTop: 0.18,
+    yBottom: 0.82,
+    dotX: left + width + gap + dotRadius,
+    dotY: 0.82 - dotRadius,
+    dotRadius
+  };
+}
+
+function insideGlyph(x, y, g) {
+  if (x >= g.left && x <= g.left + g.stroke && y >= g.yTop && y <= g.yBottom) return true;
+  if (x >= g.right - g.stroke && x <= g.right && y >= g.archCenterY && y <= g.yBottom) return true;
+  const ax = x - g.left - g.radius;
+  const ay = y - g.archCenterY;
   const arch = ax * ax + ay * ay;
-  if (y <= 0.605 && arch >= 0.12 * 0.12 && arch <= 0.185 * 0.185) return true;
-  const dx = x - 0.72;
-  const dy = y - 0.755;
-  return dx * dx + dy * dy <= 0.065 * 0.065;
+  if (y <= g.archCenterY && arch >= g.innerRadius * g.innerRadius && arch <= g.radius * g.radius) return true;
+  const dx = x - g.dotX;
+  const dy = y - g.dotY;
+  return dx * dx + dy * dy <= g.dotRadius * g.dotRadius;
 }
 
 function renderPixels(size) {
   const pixels = Buffer.alloc(size * size * 4);
   const total = size * SUPERSAMPLE;
   const samples = SUPERSAMPLE * SUPERSAMPLE;
+  const glyph = layout(size);
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
       let covered = 0;
@@ -52,7 +76,7 @@ function renderPixels(size) {
         const y = (py * SUPERSAMPLE + sy + 0.5) / total;
         for (let sx = 0; sx < SUPERSAMPLE; sx++) {
           const x = (px * SUPERSAMPLE + sx + 0.5) / total;
-          if (insideGlyph(x, y)) covered++;
+          if (insideGlyph(x, y, glyph)) covered++;
         }
       }
       const offset = (py * size + px) * 4;

@@ -83,6 +83,36 @@ test('el icono de 128 px contiene píxeles naranjas opacos', () => {
   assert.ok(countOrange(info) > 200, 'Se esperaban píxeles naranjas en el icono.');
 });
 
+test('el icono de 16 px conserva suficientes píxeles naranjas opacos para leerse', () => {
+  const info = decodePng(readFileSync(iconPath(16)));
+  assert.ok(countOrange(info) >= 30, 'A 16 px se esperaban al menos 30 píxeles naranjas opacos.');
+});
+
+test('la h y el punto no se fusionan: hay una columna tenue que los separa', () => {
+  for (const size of [16, 32, 48, 128]) {
+    const info = decodePng(readFileSync(iconPath(size)));
+    let first = -1;
+    let last = -1;
+    for (let x = 0; x < info.width; x++) {
+      let inked = false;
+      for (let y = 0; y < info.height; y++) {
+        if (info.pixels[(y * info.width + x) * info.channels + 3] > 0) { inked = true; break; }
+      }
+      if (inked) { if (first < 0) first = x; last = x; }
+    }
+    let faintest = 256;
+    for (let x = first + 1; x < last; x++) {
+      let columnMax = 0;
+      for (let y = 0; y < info.height; y++) {
+        const alpha = info.pixels[(y * info.width + x) * info.channels + 3];
+        if (alpha > columnMax) columnMax = alpha;
+      }
+      if (columnMax < faintest) faintest = columnMax;
+    }
+    assert.ok(faintest <= 128, `En ${size} px la h y el punto se fusionan (columna más tenue: ${faintest}).`);
+  }
+});
+
 test('la h y el punto naranjas aparecen a izquierda y derecha del icono', () => {
   const info = decodePng(readFileSync(iconPath(128)));
   let left = 0;
