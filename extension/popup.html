@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><meta charset="utf-8"><title>HTML a Figma</title>
 <style>
-body{width:310px;padding:20px;margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#2f2f2f;background:#f7f7f8}h1{font-size:21px;font-weight:650;letter-spacing:-.02em;color:#0d0d0d;margin:0 0 8px}p{line-height:1.5;color:#6e6e80}label{display:block;margin-top:16px;font-weight:600;color:#0d0d0d}input,select{box-sizing:border-box;width:100%;padding:10px;margin:7px 0 14px;border:1px solid #d9d9e3;border-radius:9px;background:#fff;color:#0d0d0d;font:inherit}input:focus,select:focus{outline:none;border-color:#b4b4c7}button{width:100%;border:1px solid #0d0d0d;border-radius:9px;padding:12px;color:#fff;background:#0d0d0d;font:inherit;font-weight:600;cursor:pointer}button:hover:not(:disabled){background:#353740;border-color:#353740}button:disabled{opacity:.5;cursor:wait}.secondary{background:#fff;color:#0d0d0d;border:1px solid #d9d9e3}.secondary:hover:not(:disabled){background:#f0f0f2;border-color:#d9d9e3}.hint{font-size:12px;margin:9px 0 18px}hr{border:0;border-top:1px solid #e5e5e5;margin:20px 0}#status{min-height:42px;font-size:12px;color:#6e6e80}#save-image{display:block;margin:12px 0;color:#0d0d0d;font-weight:600}#save-image[hidden]{display:none}.png-actions{display:flex;flex-direction:column;gap:8px}.mode-choice{display:flex;align-items:flex-start;gap:8px;margin:0 0 8px;font-size:13px}.mode-choice input{width:auto;margin:3px 0 0;padding:0}
+body{width:310px;padding:20px;margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#2f2f2f;background:#f7f7f8}h1{font-size:21px;font-weight:650;letter-spacing:-.02em;color:#0d0d0d;margin:0 0 8px}p{line-height:1.5;color:#6e6e80}label{display:block;margin-top:16px;font-weight:600;color:#0d0d0d}input,select{box-sizing:border-box;width:100%;padding:10px;margin:7px 0 14px;border:1px solid #d9d9e3;border-radius:9px;background:#fff;color:#0d0d0d;font:inherit}input:focus,select:focus{outline:none;border-color:#b4b4c7}button{width:100%;border:1px solid #0d0d0d;border-radius:9px;padding:12px;color:#fff;background:#0d0d0d;font:inherit;font-weight:600;cursor:pointer}button:hover:not(:disabled){background:#353740;border-color:#353740}button:disabled{opacity:.5;cursor:wait}.secondary{background:#fff;color:#0d0d0d;border:1px solid #d9d9e3}.secondary:hover:not(:disabled){background:#f0f0f2;border-color:#d9d9e3}.hint{font-size:12px;margin:9px 0 18px}hr{border:0;border-top:1px solid #e5e5e5;margin:20px 0}#status{min-height:42px;font-size:12px;color:#6e6e80}#save-image{display:block;margin:12px 0;color:#0d0d0d;font-weight:600}#save-image[hidden]{display:none}.png-actions{display:flex;flex-direction:column;gap:8px}.mode-choice{display:flex;align-items:flex-start;gap:8px;margin:0 0 8px;font-size:13px}.mode-choice input{width:auto;margin:3px 0 0;padding:0}.viewport-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.viewport-fields label{margin-top:4px;font-size:12px}.viewport-fields input{margin-bottom:4px}.viewport-hint{margin:6px 0 10px}#viewport-options[hidden]{display:none}
 </style>
 <h1>h. HTML → Figma</h1>
 <p>Captura el estado actual de la página. Después pega con ⌘V / Ctrl+V en Figma.</p>
@@ -12,12 +12,23 @@ body{width:310px;padding:20px;margin:0;font:14px/1.5 system-ui,-apple-system,"Se
 <hr>
 <div class="png-actions">
 <label class="mode-choice"><input id="full-page" type="checkbox">Capturar página completa</label>
+<div id="viewport-options" hidden>
+<label for="viewport-mode">Viewport</label>
+<select id="viewport-mode"><option value="auto">Automático</option><option value="custom">Personalizado</option></select>
+<div id="viewport-fields" hidden>
+<div class="viewport-fields">
+<label for="viewport-width">Ancho CSS (px)<input id="viewport-width" type="number" min="200" max="16384" step="1" placeholder="1900"></label>
+<label for="viewport-height">Alto CSS (px)<input id="viewport-height" type="number" min="200" max="16384" step="1" placeholder="3000"></label>
+</div>
+<p class="hint viewport-hint">El sitio puede cambiar su diseño responsive, los breakpoints o las unidades vh. El viewport se restaura al terminar. Personalizado simula otro viewport y no garantiza conservar el layout original.</p>
+</div>
+</div>
 <label for="resolution">Resolución</label>
 <select id="resolution"><option value="2" selected>2×</option><option value="1">1×</option></select>
 <button id="capture-png" class="secondary">Descargar PNG</button>
 <button id="copy-png" class="secondary">Copiar PNG</button>
 </div>
-<p class="hint">1× usa dimensiones CSS; 2× duplica ancho y alto. 1× no inventa detalle: la nitidez depende de los píxeles que Chrome capture. Desactivado: captura el área visible sin depuración. Activado: usa una captura de página completa mediante CDP, sin ensamblar desplazamientos ni repetir por ensamblado elementos fixed/sticky. No utiliza el selector de arriba; si la captura original tiene menos resolución, se indicará el reescalado.</p>
+<p class="hint">1× usa dimensiones CSS; 2× duplica ancho y alto. 1× no inventa detalle: la nitidez depende de los píxeles que Chrome capture. El área visible no usa debugger ni viewport personalizado. Página completa usa CDP, sin ensamblar desplazamientos; el modo automático conserva el viewport actual. No utiliza el selector de arriba; si la captura original tiene menos resolución, se indicará el reescalado.</p>
 <a id="save-image" hidden>Guardar PNG de nuevo</a>
 <p id="status" role="status" aria-live="polite">Abre la vista que quieras capturar.</p>
 <script type="module" src="popup.js"></script></html>

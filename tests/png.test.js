@@ -90,10 +90,15 @@ test('errores de captura visible y render liberan recursos', async () => {
 function fullPageHarness(options = {}) {
   const tab = { id: 23, windowId: 7, title: 'Página larga' };
   const cssSize = options.cssSize ?? { width: 1200, height: 2500 };
-  const bitmapSize = options.bitmapSize ?? { width: cssSize.width * 2, height: cssSize.height * 2 };
+  const viewport = options.viewport ?? { mode: 'auto' };
+  const effectiveSize = viewport.mode === 'custom'
+    ? { width: viewport.width, height: Math.max(cssSize.height, viewport.height) }
+    : cssSize;
+  const bitmapSize = options.bitmapSize ?? { width: effectiveSize.width * (viewport.mode === 'custom' ? options.scale ?? 2 : 2), height: effectiveSize.height * (viewport.mode === 'custom' ? options.scale ?? 2 : 2) };
   const commandCalls = [];
   const events = [];
   const state = { scrollX: 17, scrollY: 430 };
+  let overrideApplied = false;
   let queryCalls = 0, metricCalls = 0, capturedVisible = 0, rendered, closed = 0, decodedUrl;
   const metrics = () => options.fallbackMetrics
     ? { contentSize: cssSize }
@@ -110,7 +115,15 @@ function fullPageHarness(options = {}) {
         assert.deepEqual(target, { tabId: tab.id });
         commandCalls.push({ method, params });
         events.push(method);
-        if (options.commandFails === method) throw new Error(`CDP failed: ${method}`);
+        if (method === 'Emulation.setDeviceMetricsOverride') {
+          overrideApplied = true;
+          if (options.partialSetFails) throw options.setError ?? new Error(`CDP failed: ${method}`);
+        }
+        if (method === 'Emulation.clearDeviceMetricsOverride') assert.equal(overrideApplied, true);
+        if (options.commandFails === method || (options.clearFails && method === 'Emulation.clearDeviceMetricsOverride')) {
+          throw new Error(`CDP failed: ${method}`);
+        }
+        if (method === 'Emulation.clearDeviceMetricsOverride') overrideApplied = false;
         if (method === 'Page.getLayoutMetrics') {
           metricCalls++;
           if (options.changedMetrics && metricCalls > 1) return { cssContentSize: { ...cssSize, height: cssSize.height + 1 } };
@@ -147,7 +160,7 @@ function fullPageHarness(options = {}) {
     }
   };
   return {
-    run: () => captureFullPagePng(chrome, tab, imaging, { scale: options.scale ?? 2 }),
+    run: () => captureFullPagePng(chrome, tab, imaging, { scale: options.scale ?? 2, viewport }),
     events,
     commandCalls,
     state,
@@ -165,6 +178,13 @@ test('CDP hace attach, habilita Page, mide, captura una vez y siempre detach', a
   assert.equal(result.blob.type, 'image/png');
   assert.equal(setup.counts().capturedVisible, 0);
   assert.equal(setup.counts().closed, 1);
+});
+
+test('viewport automático no llama Emulation y mantiene el flujo CDP existente', async () => {
+  const setup = fullPageHarness();
+  await setup.run();
+  assert.equal(setup.commandCalls.some(call => call.method.startsWith('Emulation.')), false);
+  assert.deepEqual(setup.events, ['attach', 'Page.enable', 'Page.getLayoutMetrics', 'Page.captureScreenshot', 'Page.getLayoutMetrics', 'detach']);
 });
 
 test('clip usa medidas CSS del documento, captureBeyondViewport y fromSurface', async () => {
@@ -186,6 +206,68 @@ test('full-page genera dimensiones CSS exactas a 1× y 2×, incluso con bitmap D
     assert.deepEqual(setup.rendered().size, { width: 1200 * scale, height: 2500 * scale, upscaled: false });
     assert.match(result.filename, new RegExp(`-${scale}x\\.png$`));
   }
+});
+
+test('viewport personalizado aplica CSS size y DPR antes de medir y captura todo el alto documental', async () => {
+  for (const scale of [1, 2]) {
+    const setup = fullPageHarness({
+      scale,
+      cssSize: { width: 2300, height: 4600 },
+      viewport: { mode: 'custom', width: 1900, height: 3000 }
+    });
+    const result = await setup.run();
+    const override = setup.commandCalls.find(call => call.method === 'Emulation.setDeviceMetricsOverride');
+    const metricsIndex = setup.events.indexOf('Page.getLayoutMetrics');
+    assert.deepEqual(override.params, { width: 1900, height: 3000, mobile: false, deviceScaleFactor: scale });
+    assert.ok(setup.events.indexOf('Emulation.setDeviceMetricsOverride') < metricsIndex);
+    const capture = setup.commandCalls.find(call => call.method === 'Page.captureScreenshot');
+    assert.deepEqual(capture.params.clip, { x: 0, y: 0, width: 1900, height: 4600, scale: 1 });
+    assert.deepEqual({ width: result.width, height: result.height, scale: result.scale },
+      { width: 1900 * scale, height: 4600 * scale, scale });
+    assert.match(result.filename, new RegExp(`-${scale}x\\.png$`));
+    assert.ok(setup.events.indexOf('Emulation.clearDeviceMetricsOverride') < setup.events.indexOf('detach'));
+  }
+});
+
+test('viewport personalizado restaura override y hace detach al fallar screenshot o render', async () => {
+  for (const options of [
+    { commandFails: 'Page.captureScreenshot' },
+    { renderFails: true }
+  ]) {
+    const setup = fullPageHarness({ ...options, viewport: { mode: 'custom', width: 1900, height: 3000 } });
+    await assert.rejects(setup.run());
+    assert.ok(setup.events.indexOf('Emulation.clearDeviceMetricsOverride') > setup.events.indexOf('Emulation.setDeviceMetricsOverride'));
+    assert.ok(setup.events.indexOf('Emulation.clearDeviceMetricsOverride') < setup.events.indexOf('detach'));
+  }
+});
+
+test('limpia un override aplicado parcialmente y conserva el error original de set', async () => {
+  const setError = new Error('CDP failed: Emulation.setDeviceMetricsOverride');
+  const setup = fullPageHarness({
+    partialSetFails: true,
+    clearFails: true,
+    setError,
+    viewport: { mode: 'custom', width: 1900, height: 3000 }
+  });
+  await assert.rejects(setup.run(), error => error === setError);
+  assert.ok(setup.events.indexOf('Emulation.clearDeviceMetricsOverride') > setup.events.indexOf('Emulation.setDeviceMetricsOverride'));
+  assert.ok(setup.events.indexOf('Emulation.clearDeviceMetricsOverride') < setup.events.indexOf('detach'));
+});
+
+test('error de restauración no oculta el error de captura original', async () => {
+  const setup = fullPageHarness({
+    commandFails: 'Page.captureScreenshot',
+    clearFails: true,
+    viewport: { mode: 'custom', width: 1900, height: 3000 }
+  });
+  await assert.rejects(setup.run(), /CDP failed: Page.captureScreenshot/);
+  assert.equal(setup.events.at(-1), 'detach');
+});
+
+test('tamaño personalizado inválido se rechaza antes de attach y override', async () => {
+  const setup = fullPageHarness({ viewport: { mode: 'custom', width: 199, height: 3000 } });
+  await assert.rejects(setup.run(), /Ancho CSS debe ser un entero entre 200 y 16384/);
+  assert.deepEqual(setup.events, []);
 });
 
 test('usa contentSize como fallback de cssContentSize y no cambia scroll ni viewport', async () => {

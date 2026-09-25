@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HTML a Figma — Prueba local",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Copia la página a Figma o captura y descarga/copia PNG 1×/2× del área visible o la página completa.",
   "permissions": ["activeTab", "scripting", "clipboardWrite", "debugger"],
   "icons": {

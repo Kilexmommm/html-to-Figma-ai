@@ -1,3 +1,5 @@
+import { validateSettings } from './settings.js';
+
 // Output size is based on CSS pixels, never multiplied twice on Retina screens.
 export function planPng(viewport, source, scale = 2) {
   const { width, height } = viewport;
@@ -72,6 +74,11 @@ export async function capturePng(chromeApi, tab, imaging, scale = 2) {
 
 export async function captureFullPagePng(chromeApi, tab, imaging, options = {}) {
   const scale = options.scale ?? 2;
+  const viewport = options.viewport ?? { mode: 'auto' };
+  if (!['auto', 'custom'].includes(viewport.mode)) throw new Error('El viewport debe ser automático o personalizado.');
+  if (viewport.mode === 'custom') {
+    validateSettings({ fullPage: true, scale, viewportMode: viewport.mode, viewportWidth: viewport.width, viewportHeight: viewport.height });
+  }
   const debuggerTarget = { tabId: tab.id };
   const isSameTab = async () => {
     const [active] = await chromeApi.tabs.query({ active: true, windowId: tab.windowId });
@@ -82,7 +89,10 @@ export async function captureFullPagePng(chromeApi, tab, imaging, options = {}) 
     return { width: size?.width, height: size?.height };
   };
   let attached = false;
+  let overrideApplied = false;
   let bitmap;
+  let result;
+  let captureError;
   try {
     await isSameTab();
     try {
@@ -91,8 +101,21 @@ export async function captureFullPagePng(chromeApi, tab, imaging, options = {}) 
     } catch {
       throw new Error('No se pudo iniciar la captura completa. Cierra DevTools u otra sesión de depuración conectada a esta pestaña y vuelve a intentarlo.');
     }
+    if (viewport.mode === 'custom') {
+      overrideApplied = true;
+      await chromeApi.debugger.sendCommand(debuggerTarget, 'Emulation.setDeviceMetricsOverride', {
+        width: viewport.width,
+        height: viewport.height,
+        mobile: false,
+        deviceScaleFactor: scale
+      });
+    }
     await chromeApi.debugger.sendCommand(debuggerTarget, 'Page.enable');
-    const initialSize = getDocumentSize(await chromeApi.debugger.sendCommand(debuggerTarget, 'Page.getLayoutMetrics'));
+    const initialMetrics = await chromeApi.debugger.sendCommand(debuggerTarget, 'Page.getLayoutMetrics');
+    const measuredSize = getDocumentSize(initialMetrics);
+    const initialSize = viewport.mode === 'custom'
+      ? { width: viewport.width, height: Math.max(measuredSize.height, viewport.height) }
+      : measuredSize;
     planPng(initialSize, initialSize, scale);
     await isSameTab();
     const screenshot = await chromeApi.debugger.sendCommand(debuggerTarget, 'Page.captureScreenshot', {
@@ -102,7 +125,10 @@ export async function captureFullPagePng(chromeApi, tab, imaging, options = {}) 
       clip: { x: 0, y: 0, width: initialSize.width, height: initialSize.height, scale: 1 }
     });
     await isSameTab();
-    const afterSize = getDocumentSize(await chromeApi.debugger.sendCommand(debuggerTarget, 'Page.getLayoutMetrics'));
+    const afterMeasuredSize = getDocumentSize(await chromeApi.debugger.sendCommand(debuggerTarget, 'Page.getLayoutMetrics'));
+    const afterSize = viewport.mode === 'custom'
+      ? { width: viewport.width, height: Math.max(afterMeasuredSize.height, viewport.height) }
+      : afterMeasuredSize;
     if (afterSize.width !== initialSize.width || afterSize.height !== initialSize.height) {
       throw new Error('La página cambió de tamaño durante la captura. Vuelve a intentarlo cuando esté estable.');
     }
@@ -110,7 +136,7 @@ export async function captureFullPagePng(chromeApi, tab, imaging, options = {}) 
     const plan = planPng(initialSize, bitmap, scale);
     const blob = await imaging.render(bitmap, plan);
     await isSameTab();
-    return {
+    result = {
       blob,
       ...plan,
       scale,
@@ -119,10 +145,20 @@ export async function captureFullPagePng(chromeApi, tab, imaging, options = {}) 
       filename: pngFilename(tab.title, new Date(), scale),
       mode: 'Página completa'
     };
+  } catch (error) {
+    captureError = error;
   } finally {
     try { bitmap?.close(); } catch {}
+    let cleanupError;
+    if (overrideApplied) {
+      try { await chromeApi.debugger.sendCommand(debuggerTarget, 'Emulation.clearDeviceMetricsOverride'); }
+      catch (error) { cleanupError = error; }
+    }
     if (attached) {
       try { await chromeApi.debugger.detach(debuggerTarget); } catch {}
     }
+    if (captureError) throw captureError;
+    if (cleanupError) throw new Error(`No se pudo restaurar el viewport de la página: ${cleanupError.message}`);
   }
+  return result;
 }

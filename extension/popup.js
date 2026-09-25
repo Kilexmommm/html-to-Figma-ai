@@ -1,5 +1,6 @@
 import { captureFullPagePng, capturePng, copyPngToClipboard } from './png.js';
 import { describeCaptureError } from './errors.js';
+import { loadSettings, saveSettings, validateSettings } from './settings.js';
 
 const button = document.querySelector('#capture');
 const pngButton = document.querySelector('#capture-png');
@@ -7,8 +8,48 @@ const copyButton = document.querySelector('#copy-png');
 const saveLink = document.querySelector('#save-image');
 const fullPageToggle = document.querySelector('#full-page');
 const resolution = document.querySelector('#resolution');
+const viewportOptions = document.querySelector('#viewport-options');
+const viewportMode = document.querySelector('#viewport-mode');
+const viewportFields = document.querySelector('#viewport-fields');
+const viewportWidth = document.querySelector('#viewport-width');
+const viewportHeight = document.querySelector('#viewport-height');
 const status = document.querySelector('#status');
+const settingsStorage = window.localStorage;
 let downloadUrl;
+
+function readControls() {
+  return {
+    fullPage: fullPageToggle.checked,
+    scale: Number(resolution.value),
+    viewportMode: viewportMode.value,
+    viewportWidth: Number(viewportWidth.value),
+    viewportHeight: Number(viewportHeight.value)
+  };
+}
+
+function updateViewportControls() {
+  viewportOptions.hidden = !fullPageToggle.checked;
+  viewportFields.hidden = viewportMode.value !== 'custom';
+  viewportMode.disabled = !fullPageToggle.checked || button.disabled;
+  viewportWidth.disabled = viewportFields.hidden || button.disabled;
+  viewportHeight.disabled = viewportFields.hidden || button.disabled;
+}
+
+function persistControls() {
+  try {
+    saveSettings(settingsStorage, readControls());
+  } catch (error) {
+    status.textContent = `Configuración no guardada: ${error.message}`;
+  }
+}
+
+const savedSettings = loadSettings(settingsStorage);
+fullPageToggle.checked = savedSettings.fullPage;
+resolution.value = String(savedSettings.scale);
+viewportMode.value = savedSettings.viewportMode;
+viewportWidth.value = String(savedSettings.viewportWidth);
+viewportHeight.value = String(savedSettings.viewportHeight);
+updateViewportControls();
 
 function setBusy(busy) {
   button.disabled = busy;
@@ -16,6 +57,9 @@ function setBusy(busy) {
   copyButton.disabled = busy;
   fullPageToggle.disabled = busy;
   resolution.disabled = busy;
+  viewportMode.disabled = busy || !fullPageToggle.checked;
+  viewportWidth.disabled = busy || viewportFields.hidden;
+  viewportHeight.disabled = busy || viewportFields.hidden;
 }
 
 async function getPageTab() {
@@ -42,11 +86,26 @@ const pngImaging = {
 };
 
 async function captureSelectedPng() {
+  const settings = validateSettings(readControls());
   const tab = await getPageTab();
-  const scale = Number(resolution.value);
-  return fullPageToggle.checked
-    ? captureFullPagePng(chrome, tab, pngImaging, { scale })
-    : capturePng(chrome, tab, pngImaging, scale);
+  return settings.fullPage
+    ? captureFullPagePng(chrome, tab, pngImaging, {
+      scale: settings.scale,
+      viewport: settings.viewportMode === 'custom'
+        ? { mode: 'custom', width: settings.viewportWidth, height: settings.viewportHeight }
+        : { mode: 'auto' }
+    })
+    : capturePng(chrome, tab, pngImaging, settings.scale);
+}
+
+for (const control of [fullPageToggle, resolution, viewportMode, viewportWidth, viewportHeight]) {
+  control.addEventListener('change', () => {
+    updateViewportControls();
+    persistControls();
+  });
+}
+for (const control of [viewportWidth, viewportHeight]) {
+  control.addEventListener('input', persistControls);
 }
 
 function pngSummary(result) {
@@ -54,6 +113,14 @@ function pngSummary(result) {
     (result.upscaled
       ? `Reescalado desde ${result.sourceWidth} × ${result.sourceHeight} px; amplía la imagen sin añadir detalle real.`
       : 'La salida no amplía la captura original ni añade detalle.');
+}
+
+function pngProgress() {
+  if (!fullPageToggle.checked) return `Capturando el área visible a ${resolution.value}×…`;
+  if (viewportMode.value === 'custom') {
+    return `Capturando página completa con viewport CSS ${viewportWidth.value} × ${viewportHeight.value} a ${resolution.value}×…`;
+  }
+  return 'Capturando la página completa…';
 }
 
 button.addEventListener('click', async () => {
@@ -94,9 +161,7 @@ button.addEventListener('click', async () => {
 pngButton.addEventListener('click', async () => {
   setBusy(true);
   saveLink.hidden = true;
-  status.textContent = fullPageToggle.checked
-    ? 'Capturando la página completa…'
-    : `Capturando el área visible a ${resolution.value}×…`;
+  status.textContent = pngProgress();
   try {
     const result = await captureSelectedPng();
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
@@ -115,9 +180,7 @@ pngButton.addEventListener('click', async () => {
 
 copyButton.addEventListener('click', async () => {
   setBusy(true);
-  status.textContent = fullPageToggle.checked
-    ? 'Capturando la página completa…'
-    : `Capturando el área visible a ${resolution.value}×…`;
+  status.textContent = pngProgress();
   try {
     const result = await captureSelectedPng();
     await copyPngToClipboard(result);
