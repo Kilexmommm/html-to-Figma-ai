@@ -1,4 +1,4 @@
-import { captureFullPagePng, capturePng, copyPngToClipboard, renderPngTiles } from './png.js';
+import { captureFullPagePng, capturePng, copyPngToClipboard } from './png.js';
 import { describeCaptureError } from './errors.js';
 
 const button = document.querySelector('#capture');
@@ -39,9 +39,6 @@ const pngImaging = {
     context.drawImage(bitmap, 0, 0, size.width, size.height);
     return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se pudo generar el PNG.')), 'image/png'));
   },
-  renderTiles: (tiles, segments, size, viewport, scale) => renderPngTiles(
-    tiles, segments, size, viewport, scale, () => document.createElement('canvas')
-  )
 };
 
 async function captureSelectedPng() {
@@ -97,7 +94,9 @@ button.addEventListener('click', async () => {
 pngButton.addEventListener('click', async () => {
   setBusy(true);
   saveLink.hidden = true;
-  status.textContent = `Capturando ${fullPageToggle.checked ? 'la página completa' : 'el área visible'} a ${resolution.value}×…`;
+  status.textContent = fullPageToggle.checked
+    ? 'Capturando la página completa…'
+    : `Capturando el área visible a ${resolution.value}×…`;
   try {
     const result = await captureSelectedPng();
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
@@ -116,7 +115,9 @@ pngButton.addEventListener('click', async () => {
 
 copyButton.addEventListener('click', async () => {
   setBusy(true);
-  status.textContent = `Capturando ${fullPageToggle.checked ? 'la página completa' : 'el área visible'} a ${resolution.value}×…`;
+  status.textContent = fullPageToggle.checked
+    ? 'Capturando la página completa…'
+    : `Capturando el área visible a ${resolution.value}×…`;
   try {
     const result = await captureSelectedPng();
     await copyPngToClipboard(result);

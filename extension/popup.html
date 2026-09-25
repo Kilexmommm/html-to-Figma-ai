@@ -11,13 +11,13 @@ body{width:310px;padding:20px;margin:0;font:14px/1.5 system-ui,-apple-system,"Se
 <p class="hint">body captura la página completa; un selector captura una sección.</p>
 <hr>
 <div class="png-actions">
-<label class="mode-choice"><input id="full-page" type="checkbox">Capturar página completa (hasta 3 scrolls)</label>
+<label class="mode-choice"><input id="full-page" type="checkbox">Capturar página completa</label>
 <label for="resolution">Resolución</label>
 <select id="resolution"><option value="2" selected>2×</option><option value="1">1×</option></select>
 <button id="capture-png" class="secondary">Descargar PNG</button>
 <button id="copy-png" class="secondary">Copiar PNG</button>
 </div>
-<p class="hint">1× usa dimensiones CSS; 2× duplica ancho y alto. 1× no inventa detalle: la nitidez depende de los píxeles que Chrome capture. Desactivado: captura el área visible. Activado: captura hasta 4 tramos verticales (viewport inicial y 3 desplazamientos). No utiliza el selector de arriba; si la captura original tiene menos resolución, se indicará el reescalado.</p>
+<p class="hint">1× usa dimensiones CSS; 2× duplica ancho y alto. 1× no inventa detalle: la nitidez depende de los píxeles que Chrome capture. Desactivado: captura el área visible sin depuración. Activado: usa una captura de página completa mediante CDP, sin ensamblar desplazamientos ni repetir por ensamblado elementos fixed/sticky. No utiliza el selector de arriba; si la captura original tiene menos resolución, se indicará el reescalado.</p>
 <a id="save-image" hidden>Guardar PNG de nuevo</a>
 <p id="status" role="status" aria-live="polite">Abre la vista que quieras capturar.</p>
 <script type="module" src="popup.js"></script></html>
