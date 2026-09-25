@@ -77,3 +77,14 @@ Referencia de la API: https://developer.chrome.com/docs/extensions/reference/api
 - `scripts/check.mjs` comprueba la presencia de `extension/capture.js` antes de validar la sintaxis y el hash; si falta, falla con el aviso de ejecutar `npm run setup` en vez de un ENOENT crudo.
 - `tests/errors.test.js` prueba la traducción sin navegador: capture.js ausente, propagación sin cambios de otros errores y conservación del consejo para `access`. Los 21 tests previos siguen pasando.
 - No comprobado: no se reprodujo el error con la extensión cargada en Chrome. La verificación es automática sobre la función pura.
+
+## PNG de página completa — versión 0.4.0
+
+- Los botones **Descargar PNG** y **Copiar PNG** comparten los selectores **Capturar página completa (hasta 3 scrolls)** y **Resolución: 1×/2×**. Desmarcado mantiene el modo de área visible; marcado ensambla hasta cuatro capturas verticales. La escala predeterminada es 2×.
+- `planFullPageTiles` rechaza páginas que requieren más de cuatro tiles y cualquier overflow horizontal. `planStitchSegments` asigna a cada tile un tramo contiguo; el último tile empieza en `documentHeight - viewportHeight` para alinear el borde inferior y recortar el solapamiento.
+- `captureFullPagePng` consulta medidas y pestaña activa durante el proceso, espera al pintado tras cada desplazamiento y vuelve a medir. Si cambian las dimensiones o el scroll, aborta. La restauración del scroll inicial está en `finally`; los bitmaps se cierran aunque falle la captura o la composición.
+- En 1× la salida usa dimensiones CSS; en 2× duplica ancho y alto. Ambas escalas respetan los límites de `planPng`: 16384 px por lado y 40 megapíxeles. Los archivos terminan en `-1x.png` o `-2x.png` según la selección.
+- Entre llamadas a `captureVisibleTab` de página completa se espera al menos 500 ms; la primera captura no tiene espera previa. `captureInterval` y el callback `wait` se pueden inyectar para automatizar esta espera sin temporizadores reales.
+- Pruebas automatizadas cubren salida 1×/2× en área visible y página completa, dimensiones, sufijos, canvas y destino escalado de cada tile, copia de la escala elegida, página de hasta cuatro viewports, cobertura sin huecos/duplicados, alineación del último tile y su solapamiento, rechazo por exceso de tiles antes de capturar, intervalo entre capturas, restauración del scroll, errores, cambio de dimensiones y overflow horizontal.
+- Limitaciones conocidas: encabezados `sticky`/`fixed` pueden repetirse; páginas dinámicas e infinite scroll no se admiten. Páginas que superen el límite pueden capturarse en modo **Área visible**.
+- [ ] Prueba real de página completa pendiente en Chrome: cargar la versión 0.4.0, capturar una página de varias pantallas con último tramo parcial tanto en 1× como en 2×, verificar dimensiones/continuidad visual y descarga/copia a cada escala, y confirmar restauración del scroll al terminar. No se ha realizado esta prueba real.

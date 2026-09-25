@@ -39,24 +39,28 @@ La extensión solicita `activeTab`, `scripting` y escritura en el portapapeles. 
 ## Solución de problemas
 
 - **`Could not load file: 'capture.js'`** al pulsar **Copiar a Figma**: la carpeta que Chrome tiene cargada no incluye `extension/capture.js` o Chrome arrastra una carga antigua. Comprueba que cargaste la carpeta `extension` de este repositorio (el archivo viene en Git), abre `chrome://extensions` y pulsa **Recargar**. Si falta el archivo, recupera con `npm run setup`. La nueva versión del popup muestra ese mismo consejo en lugar del error crudo de Chrome.
-- **No debe haber dos copias de la extensión cargadas a la vez.** Si antes cargaste la carpeta `../extension` (la original) y ahora cargas la del repositorio, desinstala una de las dos antes de recargar. Con dos copias activas, Chrome puede ejecutar la versión antigua (sin `capture.js`) aunque la carpeta nueva sí lo tenga.
+- **No cargues dos copias de la extensión a la vez.** Si tienes otra carpeta antigua instalada además de la del repositorio, quita una de las dos desde `chrome://extensions`; Chrome puede ejecutar una versión diferente de la que esperas.
 - La traducción del error a un mensaje accionable está en `extension/errors.js` y se prueba con tests de Node (`tests/errors.test.js`). No se ha reproducido el fallo con la extensión cargada en Chrome: la comprobación es automática sobre la función de traducción.
 
-## Descargar o copiar una imagen PNG 2×
+## Descargar o copiar una imagen PNG 1×/2×
 
-En la versión actual (0.3.2) hay dos botones, **Descargar PNG 2×** y **Copiar PNG 2×**, introducidos en la 0.2.0. Después de actualizar los archivos, pulsa **Recargar** en la tarjeta de la extensión en `chrome://extensions`.
+En la versión actual (0.4.0) hay dos botones, **Descargar PNG** y **Copiar PNG**, y un selector **Resolución**. Después de actualizar los archivos, pulsa **Recargar** en la tarjeta de la extensión en `chrome://extensions`.
 
-1. Abre la página y desplázate hasta el área que quieras guardar.
-2. Abre la extensión y pulsa **Descargar PNG 2×** para iniciar una descarga, o **Copiar PNG 2×** para poner la imagen en el portapapeles.
+1. Abre la página. Deja desmarcada **Capturar página completa (hasta 3 scrolls)** para guardar solo el viewport actual; márcala para capturar desde arriba hasta el final.
+2. Elige **1×** o **2×** en **Resolución**. **2×** es la opción predeterminada. Pulsa **Descargar PNG** para iniciar una descarga, o **Copiar PNG** para poner la imagen en el portapapeles.
 3. Tras la descarga, el panel muestra las dimensiones y deja un enlace para guardarla de nuevo. Tras la copia, el panel indica las dimensiones y que la imagen quedó en el portapapeles; ya se puede pegar con `⌘V` o `Ctrl+V`.
 
-Ambos botones capturan exactamente el mismo PNG 2×. Captura exclusivamente el área visible de la pestaña, sin la interfaz del navegador. No usa el selector de la captura editable de Figma. Un viewport de 1440 × 900 píxeles CSS genera una imagen de 2880 × 1800 píxeles.
+Ambos botones respetan el modo y la resolución seleccionados y generan un solo PNG, que se descarga o se copia según el botón pulsado. **Área visible** captura el viewport actual, sin interfaz del navegador. **Página completa** captura en secuencia el viewport inicial y hasta tres desplazamientos verticales, y ensambla los tramos sin solapamientos; alinear el último tramo al final evita perder contenido cuando la altura no es múltiplo del viewport. Entre capturas de página completa hay una espera de 500 ms para respetar el límite de Chrome. La escala elegida aplica tanto a **Área visible** como a **Página completa**, y a descargar y copiar. En **1×**, la salida tiene las mismas dimensiones que los píxeles CSS; en **2×**, duplica ancho y alto. Por ejemplo, un viewport de 1440 × 900 CSS produce 1440 × 900 px a 1× o 2880 × 1800 px a 2×.
+
+**2×** sigue siendo la opción predeterminada. **1×** entrega dimensiones CSS y no inventa detalle: puede reducir una captura de alta densidad o seguir dependiendo de los píxeles que Chrome entrega según la pantalla y el zoom. El panel indica las dimensiones y si la imagen final se amplió desde una captura con menos píxeles; puedes comparar ambas escalas y elegir la que te convenga.
+
+La captura de página completa se rechaza si necesita más de cuatro tiles (viewport inicial más tres scrolls), si hay overflow horizontal o si el documento excede los límites actuales de PNG de 16384 px por lado o 40 megapíxeles. En esos casos el panel explica el motivo; para páginas largas se puede volver a **Área visible**. Se mide el tamaño antes y durante la captura, se verifica que siga activa la misma pestaña y se restaura la posición de scroll original incluso si falla un tile. Las páginas dinámicas o con infinite scroll no se admiten en esta primera versión; si cambian de tamaño durante el proceso se aborta. Los encabezados `sticky` o `fixed` pueden aparecer repetidos en distintos tramos.
 
 La resolución original depende de la pantalla y del zoom de Chrome. En Retina 2×, si Chrome entrega suficientes píxeles, se conserva ese detalle. Si la captura nativa es menor, el PNG se reescala y el panel lo indica: aumentar dimensiones no inventa detalle. No se utiliza depuración del navegador ni se solicitan permisos nuevos.
 
 La copia usa `navigator.clipboard.write` con un `ClipboardItem` de tipo `image/png`. Si el navegador no ofrece esa API, el panel muestra un error claro y sugiere usar la descarga; el popup no se bloquea. En Chrome, escribir en el portapapeles requiere una ventana enfocada, así que la copia debe pulsarse con el popup abierto y la página activa.
 
-El botón de descarga se probó en Chrome sobre `https://example.com`: descargó un PNG válido de 3526 × 1714 px a partir de una captura de 1763 × 857 px. El panel indicó correctamente que hubo reescalado. También se inspeccionó visualmente la imagen descargada. Las pruebas automatizadas cubren dimensiones, cambios de pestaña/vista, propagación de errores, liberación del bitmap, la construcción del `ClipboardItem`, el aviso cuando el portapapeles no está disponible y que copiar no dispara ninguna descarga, usando un navegador simulado. La copia real en el portapapeles de Chrome todavía no se ha probado en navegador.
+La descarga del modo **Área visible** se probó previamente en Chrome sobre `https://example.com`: descargó un PNG válido de 3526 × 1714 px a partir de una captura de 1763 × 857 px y se inspeccionó visualmente. Las pruebas automatizadas de la versión actual cubren dimensiones y sufijos 1×/2×, canvas y destino de cada tile en página completa, planificación y composición, espera entre capturas, restauración del scroll ante errores, cambios de tamaño/pestaña, overflow horizontal, liberación de bitmaps y el flujo simulado del portapapeles. La prueba real en Chrome de **Página completa** a 1× y 2× (incluidas continuidad visual, dimensiones y descarga/copia) y la copia real al portapapeles de Chrome están pendientes.
 
 ## Versión 0.3.0 — icono y tema
 
@@ -73,7 +77,7 @@ No se ha hecho todavía una prueba real en navegador con el icono ni con el tema
 
 - Captura el estado renderizado actual de la página o el elemento seleccionado por CSS.
 - No añade algoritmos propios de Auto Layout, sustitución de fuentes o simplificación de capas. Figma decide cómo importar el resultado.
-- `body` incluye la página completa, también contenido fuera del viewport. El recorte exacto al área visible queda pendiente.
+- En **Copiar a Figma**, `body` incluye el contenido de la página fuera del viewport; el recorte propio de la exportación PNG se explica arriba.
 - La navegación sigue ejecutándose en el HTML. Cada vista debe capturarse por separado.
 - No implementa todavía descarga de páginas arbitrarias. Para los HTML generados, se conserva el archivo fuente original con su navegación.
 - Las fuentes, imágenes externas, canvas, iframes y estilos complejos requieren pruebas específicas.

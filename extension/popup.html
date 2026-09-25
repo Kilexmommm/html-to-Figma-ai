@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><meta charset="utf-8"><title>HTML a Figma</title>
 <style>
-body{width:310px;padding:20px;margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#2f2f2f;background:#f7f7f8}h1{font-size:21px;font-weight:650;letter-spacing:-.02em;color:#0d0d0d;margin:0 0 8px}p{line-height:1.5;color:#6e6e80}label{display:block;margin-top:16px;font-weight:600;color:#0d0d0d}input{box-sizing:border-box;width:100%;padding:10px;margin:7px 0 14px;border:1px solid #d9d9e3;border-radius:9px;background:#fff;color:#0d0d0d;font:inherit}input:focus{outline:none;border-color:#b4b4c7}button{width:100%;border:1px solid #0d0d0d;border-radius:9px;padding:12px;color:#fff;background:#0d0d0d;font:inherit;font-weight:600;cursor:pointer}button:hover:not(:disabled){background:#353740;border-color:#353740}button:disabled{opacity:.5;cursor:wait}.secondary{background:#fff;color:#0d0d0d;border:1px solid #d9d9e3}.secondary:hover:not(:disabled){background:#f0f0f2;border-color:#d9d9e3}.hint{font-size:12px;margin:9px 0 18px}hr{border:0;border-top:1px solid #e5e5e5;margin:20px 0}#status{min-height:42px;font-size:12px;color:#6e6e80}#save-image{display:block;margin:12px 0;color:#0d0d0d;font-weight:600}#save-image[hidden]{display:none}.png-actions{display:flex;flex-direction:column;gap:8px}
+body{width:310px;padding:20px;margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#2f2f2f;background:#f7f7f8}h1{font-size:21px;font-weight:650;letter-spacing:-.02em;color:#0d0d0d;margin:0 0 8px}p{line-height:1.5;color:#6e6e80}label{display:block;margin-top:16px;font-weight:600;color:#0d0d0d}input,select{box-sizing:border-box;width:100%;padding:10px;margin:7px 0 14px;border:1px solid #d9d9e3;border-radius:9px;background:#fff;color:#0d0d0d;font:inherit}input:focus,select:focus{outline:none;border-color:#b4b4c7}button{width:100%;border:1px solid #0d0d0d;border-radius:9px;padding:12px;color:#fff;background:#0d0d0d;font:inherit;font-weight:600;cursor:pointer}button:hover:not(:disabled){background:#353740;border-color:#353740}button:disabled{opacity:.5;cursor:wait}.secondary{background:#fff;color:#0d0d0d;border:1px solid #d9d9e3}.secondary:hover:not(:disabled){background:#f0f0f2;border-color:#d9d9e3}.hint{font-size:12px;margin:9px 0 18px}hr{border:0;border-top:1px solid #e5e5e5;margin:20px 0}#status{min-height:42px;font-size:12px;color:#6e6e80}#save-image{display:block;margin:12px 0;color:#0d0d0d;font-weight:600}#save-image[hidden]{display:none}.png-actions{display:flex;flex-direction:column;gap:8px}.mode-choice{display:flex;align-items:flex-start;gap:8px;margin:0 0 8px;font-size:13px}.mode-choice input{width:auto;margin:3px 0 0;padding:0}
 </style>
 <h1>h. HTML → Figma</h1>
 <p>Captura el estado actual de la página. Después pega con ⌘V / Ctrl+V en Figma.</p>
@@ -11,10 +11,13 @@ body{width:310px;padding:20px;margin:0;font:14px/1.5 system-ui,-apple-system,"Se
 <p class="hint">body captura la página completa; un selector captura una sección.</p>
 <hr>
 <div class="png-actions">
-<button id="capture-png" class="secondary">Descargar PNG 2×</button>
-<button id="copy-png" class="secondary">Copiar PNG 2×</button>
+<label class="mode-choice"><input id="full-page" type="checkbox">Capturar página completa (hasta 3 scrolls)</label>
+<label for="resolution">Resolución</label>
+<select id="resolution"><option value="2" selected>2×</option><option value="1">1×</option></select>
+<button id="capture-png" class="secondary">Descargar PNG</button>
+<button id="copy-png" class="secondary">Copiar PNG</button>
 </div>
-<p class="hint">Imagen del área visible, al doble de ancho y alto. No utiliza el selector de arriba. Si la captura original tiene menos resolución, se indicará el reescalado.</p>
+<p class="hint">1× usa dimensiones CSS; 2× duplica ancho y alto. 1× no inventa detalle: la nitidez depende de los píxeles que Chrome capture. Desactivado: captura el área visible. Activado: captura hasta 4 tramos verticales (viewport inicial y 3 desplazamientos). No utiliza el selector de arriba; si la captura original tiene menos resolución, se indicará el reescalado.</p>
 <a id="save-image" hidden>Guardar PNG de nuevo</a>
 <p id="status" role="status" aria-live="polite">Abre la vista que quieras capturar.</p>
 <script type="module" src="popup.js"></script></html>

@@ -1,10 +1,12 @@
-import { capturePng, copyPngToClipboard } from './png.js';
+import { captureFullPagePng, capturePng, copyPngToClipboard, renderPngTiles } from './png.js';
 import { describeCaptureError } from './errors.js';
 
 const button = document.querySelector('#capture');
 const pngButton = document.querySelector('#capture-png');
 const copyButton = document.querySelector('#copy-png');
 const saveLink = document.querySelector('#save-image');
+const fullPageToggle = document.querySelector('#full-page');
+const resolution = document.querySelector('#resolution');
 const status = document.querySelector('#status');
 let downloadUrl;
 
@@ -12,6 +14,8 @@ function setBusy(busy) {
   button.disabled = busy;
   pngButton.disabled = busy;
   copyButton.disabled = busy;
+  fullPageToggle.disabled = busy;
+  resolution.disabled = busy;
 }
 
 async function getPageTab() {
@@ -34,18 +38,25 @@ const pngImaging = {
     context.imageSmoothingQuality = 'high';
     context.drawImage(bitmap, 0, 0, size.width, size.height);
     return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se pudo generar el PNG.')), 'image/png'));
-  }
+  },
+  renderTiles: (tiles, segments, size, viewport, scale) => renderPngTiles(
+    tiles, segments, size, viewport, scale, () => document.createElement('canvas')
+  )
 };
 
-async function captureVisiblePng() {
-  return capturePng(chrome, await getPageTab(), pngImaging);
+async function captureSelectedPng() {
+  const tab = await getPageTab();
+  const scale = Number(resolution.value);
+  return fullPageToggle.checked
+    ? captureFullPagePng(chrome, tab, pngImaging, { scale })
+    : capturePng(chrome, tab, pngImaging, scale);
 }
 
 function pngSummary(result) {
-  return `${result.width} × ${result.height} px. ` +
+  return `${result.scale}× · ${result.width} × ${result.height} px. ` +
     (result.upscaled
       ? `Reescalado desde ${result.sourceWidth} × ${result.sourceHeight} px; amplía la imagen sin añadir detalle real.`
-      : 'La captura original aporta la resolución necesaria para 2×.');
+      : 'La salida no amplía la captura original ni añade detalle.');
 }
 
 button.addEventListener('click', async () => {
@@ -86,16 +97,16 @@ button.addEventListener('click', async () => {
 pngButton.addEventListener('click', async () => {
   setBusy(true);
   saveLink.hidden = true;
-  status.textContent = 'Capturando el área visible…';
+  status.textContent = `Capturando ${fullPageToggle.checked ? 'la página completa' : 'el área visible'} a ${resolution.value}×…`;
   try {
-    const result = await captureVisiblePng();
+    const result = await captureSelectedPng();
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
     downloadUrl = URL.createObjectURL(result.blob);
     saveLink.href = downloadUrl;
     saveLink.download = result.filename;
     saveLink.hidden = false;
     saveLink.click();
-    status.textContent = `PNG preparado: ${pngSummary(result)}`;
+    status.textContent = `PNG preparado (${result.mode}): ${pngSummary(result)}`;
   } catch (error) {
     status.textContent = `No se pudo capturar: ${error.message}`;
   } finally {
@@ -105,11 +116,11 @@ pngButton.addEventListener('click', async () => {
 
 copyButton.addEventListener('click', async () => {
   setBusy(true);
-  status.textContent = 'Capturando el área visible…';
+  status.textContent = `Capturando ${fullPageToggle.checked ? 'la página completa' : 'el área visible'} a ${resolution.value}×…`;
   try {
-    const result = await captureVisiblePng();
+    const result = await captureSelectedPng();
     await copyPngToClipboard(result);
-    status.textContent = `PNG 2× copiado al portapapeles: ${pngSummary(result)}`;
+    status.textContent = `PNG ${result.scale}× copiado (${result.mode}): ${pngSummary(result)}`;
   } catch (error) {
     status.textContent = `No se pudo copiar: ${error.message}`;
   } finally {
